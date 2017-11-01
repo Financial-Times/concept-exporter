@@ -50,6 +50,10 @@ func (handler *RequestHandler) Export(writer http.ResponseWriter, request *http.
 		return
 	}
 	candidates, errMsg := handler.getCandidateConceptTypes(request, tid)
+	if len(candidates) == 0 {
+		http.Error(writer, "No valid candidate concept types in the request", http.StatusBadRequest)
+		return
+	}
 	job := handler.Exporter.CreateJob(candidates, errMsg)
 	go handler.Exporter.RunFullExport(tid)
 	writer.WriteHeader(http.StatusAccepted)
@@ -83,6 +87,9 @@ func (handler *RequestHandler) getCandidateConceptTypes(request *http.Request, t
 		}
 		if len(unsupported) != 0 {
 			errMsg = fmt.Sprintf("There are unsupported concept types within the candidates: %v", unsupported)
+		}
+		if len(candidates) == 0 {
+			return
 		}
 	}
 	if candidates == nil || len(candidates) == 0 {

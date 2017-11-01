@@ -21,7 +21,7 @@ else
 fi
 jobResult=`curl -qSfs "${EXPORTER_URL}/export" -H "Authorization: ${AUTH}" -XPOST -d "${postBody}" 2>/dev/null`
 if [ "$?" -ne 0 ]; then
-  echo ">>Exporter service cannot be called successfully. Maybe service is down or the authentication is incorrect or there is already a running export job?"
+  echo ">>Exporter service cannot be called successfully. Maybe service is down or the authentication is incorrect or there is already a running export job? Or no valid candidate concept types in the request?"
   exit 1
 else
   jobID=`echo "${jobResult}" | jq '.ID' | cut -d'"' -f2 2>/dev/null`
