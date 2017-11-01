@@ -73,6 +73,7 @@ waitLoop:
 				break waitLoop
 			}
 			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Uuid)
+			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Id)
 			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ApiUrl)
 			assert.Equal(t, "Business School video", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Brand", "Classification"}, c.Labels)
@@ -108,6 +109,7 @@ waitLoop:
 				break waitLoop
 			}
 			assert.Equal(t, "eac853f5-3859-4c08-8540-55e043719400", c.Uuid)
+			assert.Equal(t, "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400", c.Id)
 			assert.Equal(t, "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400", c.ApiUrl)
 			assert.Equal(t, "Fakebook, Inc.", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Organisation", "PublicCompany", "Company"}, c.Labels)

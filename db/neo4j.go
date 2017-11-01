@@ -21,6 +21,7 @@ func NewNeoService(conn neoutils.NeoConnection, neoURL string) *NeoService {
 }
 
 type Concept struct {
+	Id        string
 	Uuid      string
 	PrefLabel string
 	ApiUrl    string
@@ -65,6 +66,7 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 		defer close(conceptCh)
 		for _, c := range results {
 			c.ApiUrl = mapper.APIURL(c.Uuid, c.Labels, "")
+			c.Id = mapper.IDURL(c.Uuid)
 			conceptCh <- c
 		}
 	}()
