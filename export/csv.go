@@ -58,7 +58,7 @@ func (e *CsvExporter) GetFileName(conceptType string) string {
 
 func getHeader(conceptType string) []string {
 	if conceptType == "Organisation" {
-		return []string{"uuid", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI"}
+		return []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI"}
 	}
-	return []string{"uuid", "prefLabel", "apiUrl"}
+	return []string{"id", "prefLabel", "apiUrl"}
 }
