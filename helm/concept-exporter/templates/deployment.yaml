@@ -23,18 +23,23 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
-        - name: ENV_VAR_1
-          value: {{ .Values.env.ENV_VAR_1 }}
-        - name: ENV_VAR_WITH_VALUE_IN_CONFIG_MAP
+        - name: MAX_GO_ROUTINES
+          value: {{ .Values.env.goroutines }}
+        - name: S3_WRITER_BASE_URL
           valueFrom:
             configMapKeyRef:
               name: global-config
-              key: key.for.configmap.entry
-        - name: ENV_VAR_WITH_VALUE_IN_SECRET_MAP
+              key: upp.exports.rw.s3.url
+        - name: S3_WRITER_HEALTH_URL
           valueFrom:
-            secretKeyRef:
-              name: global-secrets
-              key: key.for.secret.entry
+            configMapKeyRef:
+              name: global-config
+              key: upp.exports.rw.s3.health.url
+        - name: NEO_URL
+          valueFrom:
+            configMapKeyRef:
+              name: global-config
+              key: neo4j.read.write.url
         ports:
         - containerPort: 8080
         livenessProbe:

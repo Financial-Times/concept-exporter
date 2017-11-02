@@ -2,4 +2,4 @@
 service:
   name: concept-exporter
 env:
-  ENV_VAR_1: "value1"
+  goroutines: 9
