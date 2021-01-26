@@ -77,9 +77,9 @@ waitLoop:
 			if !open {
 				break waitLoop
 			}
-			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Uuid)
-			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Id)
-			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ApiUrl)
+			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.UUID)
+			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ID)
+			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.APIURL)
 			assert.Equal(t, "Business School video", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Brand", "Classification"}, c.Labels)
 			assert.Empty(t, c.LeiCode)
@@ -187,9 +187,9 @@ waitLoop:
 			if !open {
 				break waitLoop
 			}
-			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Uuid)
-			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Id)
-			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ApiUrl)
+			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.UUID)
+			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ID)
+			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.APIURL)
 			assert.Equal(t, "Business School video", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Brand", "Classification"}, c.Labels)
 			assert.Empty(t, c.LeiCode)
@@ -250,14 +250,14 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 					if !open {
 						break waitLoop
 					}
-					assert.Equal(t, "eac853f5-3859-4c08-8540-55e043719400", c.Uuid)
-					assert.Equal(t, "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400", c.Id)
-					assert.Equal(t, "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400", c.ApiUrl)
+					assert.Equal(t, "eac853f5-3859-4c08-8540-55e043719400", c.UUID)
+					assert.Equal(t, "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400", c.ID)
+					assert.Equal(t, "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400", c.APIURL)
 					assert.Equal(t, "Fakebook", c.PrefLabel)
 					assertListContainsAll(t, []string{"Thing", "Concept", "Organisation", "PublicCompany", "Company"}, c.Labels)
 					assert.Equal(t, "PBLD0EJDB5FWOLXP3B76", c.LeiCode)
 					assert.Equal(t, "BB8000C3P0-R2D2", c.FIGI)
-					assert.Regexp(t, regexp.MustCompile(test.expectedFactsetRegex), c.FactsetId)
+					assert.Regexp(t, regexp.MustCompile(test.expectedFactsetRegex), c.FactsetID)
 				case <-time.After(3 * time.Second):
 					t.FailNow()
 				}
@@ -332,9 +332,9 @@ func TestNeoService_ReadPerson(t *testing.T) {
 						if !open {
 							break waitLoop
 						}
-						assert.Equal(t, test.uuid, c.Uuid)
-						assert.Equal(t, "http://api.ft.com/things/"+test.uuid, c.Id)
-						assert.Equal(t, "http://api.ft.com/people/"+test.uuid, c.ApiUrl)
+						assert.Equal(t, test.uuid, c.UUID)
+						assert.Equal(t, "http://api.ft.com/things/"+test.uuid, c.ID)
+						assert.Equal(t, "http://api.ft.com/people/"+test.uuid, c.APIURL)
 						assert.Equal(t, test.expectedPrefLabel, c.PrefLabel)
 						assertListContainsAll(t, []string{"Thing", "Concept", "Person"}, c.Labels)
 					case <-time.After(3 * time.Second):

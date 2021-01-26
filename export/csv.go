@@ -41,12 +41,12 @@ func (e *CsvExporter) Prepare(conceptTypes []string) error {
 
 func (e *CsvExporter) Write(c db.Concept, conceptType, tid string) error {
 	var rec []string
-	rec = append(rec, c.Id)
+	rec = append(rec, c.ID)
 	rec = append(rec, c.PrefLabel)
-	rec = append(rec, c.ApiUrl)
+	rec = append(rec, c.APIURL)
 	if conceptType == "Organisation" {
 		rec = append(rec, c.LeiCode)
-		rec = append(rec, c.FactsetId)
+		rec = append(rec, c.FactsetID)
 		rec = append(rec, c.FIGI)
 	}
 

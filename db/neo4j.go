@@ -26,14 +26,15 @@ func NewNeoService(conn neoutils.NeoConnection, neoURL string) *NeoService {
 
 //Concept is the model for the data read from the data source
 type Concept struct {
-	Id        string
-	Uuid      string
-	PrefLabel string
-	ApiUrl    string
-	Labels    []string
-	LeiCode   string
-	FactsetId string
-	FIGI      string
+	ID                      string
+	UUID                    string
+	PrefLabel               string
+	APIURL                  string
+	Labels                  []string
+	LeiCode                 string
+	FactsetID               string
+	FIGI                    string
+	IndustryClassifications string
 }
 
 func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool, error) {
@@ -84,8 +85,8 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 	go func() {
 		defer close(conceptCh)
 		for _, c := range results {
-			c.ApiUrl = mapper.APIURL(c.Uuid, c.Labels, "")
-			c.Id = mapper.IDURL(c.Uuid)
+			c.APIURL = mapper.APIURL(c.UUID, c.Labels, "")
+			c.ID = mapper.IDURL(c.UUID)
 			conceptCh <- c
 		}
 	}()
