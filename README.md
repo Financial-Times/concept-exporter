@@ -18,13 +18,12 @@ There are 2 types of exports:
         go test -v -race ./...
         go install
 
-2. Run the integration tests:
-        
-        go test -tags=integration -race ./...
-  
-You should have a running local instance of Neo4j:
-
-        docker run --rm -p 7474:7474 -p 7687:7687 -e NEO4J_ACCEPT_LICENSE_AGREEMENT="yes" -e NEO4J_AUTH="none" neo4j:3.4.10-enterprise
+2. Run unit and integration tests:
+    ```
+    docker-compose -f docker-compose-tests.yml up -d --build && \
+    docker logs -f test-runner && \
+    docker-compose -f docker-compose-tests.yml down -v
+    ```
 
 3. Run the binary (using the `help` flag to see the available optional arguments):
 
