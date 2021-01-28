@@ -40,16 +40,7 @@ func (e *CsvExporter) Prepare(conceptTypes []string) error {
 }
 
 func (e *CsvExporter) Write(c db.Concept, conceptType, tid string) error {
-	var rec []string
-	rec = append(rec, c.ID)
-	rec = append(rec, c.PrefLabel)
-	rec = append(rec, c.APIURL)
-	if conceptType == "Organisation" {
-		rec = append(rec, c.LeiCode)
-		rec = append(rec, c.FactsetID)
-		rec = append(rec, c.FIGI)
-	}
-
+	rec := conceptToCSVRecord(c, conceptType)
 	return e.Writer[conceptType].Writer.Write(rec)
 }
 
@@ -62,4 +53,18 @@ func getHeader(conceptType string) []string {
 		return []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI"}
 	}
 	return []string{"id", "prefLabel", "apiUrl"}
+}
+
+func conceptToCSVRecord(c db.Concept, conceptType string) []string {
+	var rec []string
+	rec = append(rec, c.ID)
+	rec = append(rec, c.PrefLabel)
+	rec = append(rec, c.APIURL)
+	if conceptType == "Organisation" {
+		rec = append(rec, c.LeiCode)
+		rec = append(rec, c.FactsetID)
+		rec = append(rec, c.FIGI)
+	}
+
+	return rec
 }
