@@ -3,6 +3,7 @@ package export
 import (
 	"bytes"
 	"encoding/csv"
+	"strings"
 
 	"github.com/Financial-Times/concept-exporter/db"
 )
@@ -50,7 +51,7 @@ func (e *CsvExporter) GetFileName(conceptType string) string {
 
 func getHeader(conceptType string) []string {
 	if conceptType == "Organisation" {
-		return []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI"}
+		return []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI", "NAICS"}
 	}
 	return []string{"id", "prefLabel", "apiUrl"}
 }
@@ -64,6 +65,13 @@ func conceptToCSVRecord(c db.Concept, conceptType string) []string {
 		rec = append(rec, c.LeiCode)
 		rec = append(rec, c.FactsetID)
 		rec = append(rec, c.FIGI)
+
+		var naics []string
+		for _, ic := range c.NAICSIndustryClassifications {
+			naics = append(naics, ic.IndustryIdentifier)
+		}
+
+		rec = append(rec, strings.Join(naics, ";"))
 	}
 
 	return rec
