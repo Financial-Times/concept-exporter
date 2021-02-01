@@ -63,8 +63,8 @@ func conceptToCSVRecord(c db.Concept, conceptType string) []string {
 	rec = append(rec, c.APIURL)
 	if conceptType == "Organisation" {
 		rec = append(rec, c.LeiCode)
-		rec = append(rec, c.FactsetID)
-		rec = append(rec, c.FIGI)
+		rec = append(rec, strings.Join(c.FactsetIDs, ";"))
+		rec = append(rec, strings.Join(c.FigiCodes, ";"))
 
 		var naics []string
 		for _, ic := range c.NAICSIndustryClassifications {

@@ -33,8 +33,8 @@ type Concept struct {
 	APIURL                       string
 	Labels                       []string
 	LeiCode                      string
-	FactsetID                    string
-	FIGI                         string
+	FactsetIDs                   []string
+	FigiCodes                    []string
 	NAICSIndustryClassifications []NAICSIndustryClassification
 }
 
@@ -62,8 +62,8 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 		WITH x, collect(DISTINCT CASE concept.authority WHEN 'FACTSET' THEN concept.authorityValue END) AS factsetIds,
 			collect(DISTINCT fi.figiCode) as figiCodes, collect(DISTINCT {id: naicsCanonical.industryIdentifier, rank: hasICRel.rank}) as naicsIndustryClassifications 
 		RETURN x.prefUUID AS Uuid, labels(x) AS Labels, x.prefLabel AS PrefLabel, x.leiCode AS leiCode,
-			reduce(s=head(factsetIds), n IN tail(factsetIds) | s + ';' + n) AS factsetId,
-			reduce(s=head(figiCodes), n IN tail(figiCodes) | s + ';' + n) AS FIGI,
+			factsetIds,
+			figiCodes,
 			naicsIndustryClassifications
 		`
 	}

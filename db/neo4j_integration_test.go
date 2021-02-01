@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"regexp"
+	"sort"
 	"testing"
 	"time"
 
@@ -85,7 +85,7 @@ waitLoop:
 			assert.Equal(t, "Business School video", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Brand", "Classification"}, c.Labels)
 			assert.Empty(t, c.LeiCode)
-			assert.Empty(t, c.FIGI)
+			assert.Empty(t, c.FigiCodes)
 		case <-time.After(3 * time.Second):
 			t.FailNow()
 		}
@@ -195,7 +195,7 @@ waitLoop:
 			assert.Equal(t, "Business School video", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Brand", "Classification"}, c.Labels)
 			assert.Empty(t, c.LeiCode)
-			assert.Empty(t, c.FIGI)
+			assert.Empty(t, c.FigiCodes)
 		case <-time.After(3 * time.Second):
 			t.FailNow()
 		}
@@ -208,24 +208,24 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 	assert.NoError(t, svc.Initialise())
 
 	tests := []struct {
-		name                 string
-		fixture              string
-		expectedFactsetRegex string
+		name               string
+		fixture            string
+		expectedFactsetIDs []string
 	}{
 		{
-			name:                 "Organisation with 0 Factset Sources",
-			fixture:              fmt.Sprintf("./fixtures/Organisation-Fakebook-%s.json", companyUUID),
-			expectedFactsetRegex: `^$`,
+			name:               "Organisation with 0 Factset Sources",
+			fixture:            fmt.Sprintf("./fixtures/Organisation-Fakebook-%s.json", companyUUID),
+			expectedFactsetIDs: []string{},
 		},
 		{
-			name:                 "Organisation with 1 Factset Sources",
-			fixture:              fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset.json", companyUUID),
-			expectedFactsetRegex: `^FACTSET1$`,
+			name:               "Organisation with 1 Factset Sources",
+			fixture:            fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset.json", companyUUID),
+			expectedFactsetIDs: []string{"FACTSET1"},
 		},
 		{
-			name:                 "Organisation with 2 Factset Sources",
-			fixture:              fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset2.json", companyUUID),
-			expectedFactsetRegex: `^FACTSET\d;FACTSET\d$`, // We cannot guarantee the order of the IDs
+			name:               "Organisation with 2 Factset Sources",
+			fixture:            fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset2.json", companyUUID),
+			expectedFactsetIDs: []string{"FACTSET1", "FACTSET2"},
 		},
 	}
 
@@ -258,8 +258,11 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 					assert.Equal(t, "Fakebook", c.PrefLabel)
 					assertListContainsAll(t, []string{"Thing", "Concept", "Organisation", "PublicCompany", "Company"}, c.Labels)
 					assert.Equal(t, "PBLD0EJDB5FWOLXP3B76", c.LeiCode)
-					assert.Equal(t, "BB8000C3P0-R2D2", c.FIGI)
-					assert.Regexp(t, regexp.MustCompile(test.expectedFactsetRegex), c.FactsetID)
+					assert.Equal(t, []string{"BB8000C3P0-R2D2"}, c.FigiCodes)
+
+					sort.Strings(test.expectedFactsetIDs)
+					sort.Strings(c.FactsetIDs)
+					assert.Equal(t, test.expectedFactsetIDs, c.FactsetIDs)
 				case <-time.After(3 * time.Second):
 					t.FailNow()
 				}

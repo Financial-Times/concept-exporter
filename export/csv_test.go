@@ -41,12 +41,12 @@ func TestConceptToCSVRecord(t *testing.T) {
 		},
 		"transform organisation": {
 			concept: db.Concept{
-				ID:        "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400",
-				PrefLabel: "Fakebook",
-				APIURL:    "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400",
-				LeiCode:   "PBLD0EJDB5FWOLXP3B76",
-				FactsetID: "FACTSET1;FACTSET1",
-				FIGI:      "BB8000C3P0-R2D2",
+				ID:         "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400",
+				PrefLabel:  "Fakebook",
+				APIURL:     "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400",
+				LeiCode:    "PBLD0EJDB5FWOLXP3B76",
+				FactsetIDs: []string{"FACTSET1", "FACTSET2"},
+				FigiCodes:  []string{"BB8000C3P0-R2D2"},
 				NAICSIndustryClassifications: []db.NAICSIndustryClassification{
 					{IndustryIdentifier: "519130", Rank: 1},
 					{IndustryIdentifier: "519131", Rank: 2},
@@ -58,7 +58,7 @@ func TestConceptToCSVRecord(t *testing.T) {
 				"Fakebook",
 				"http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400",
 				"PBLD0EJDB5FWOLXP3B76",
-				"FACTSET1;FACTSET1",
+				"FACTSET1;FACTSET2",
 				"BB8000C3P0-R2D2",
 				"519130;519131",
 			},
