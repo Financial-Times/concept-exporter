@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"regexp"
+	"sort"
 	"testing"
 	"time"
 
@@ -23,18 +23,20 @@ import (
 )
 
 const (
-	contentUUID             = "a435b4ec-b207-4dce-ac0a-f8e7bbef310b"
-	brandParentUUID         = "dbb0bdae-1f0c-1a1a-b0cb-b2227cce2b54"
-	brandChildUUID          = "ff691bf8-8d92-1a1a-8326-c273400bff0b"
-	brandGrandChildUUID     = "ff691bf8-8d92-2a2a-8326-c273400bff0b"
-	financialInstrumentUUID = "77f613ad-1470-422c-bf7c-1dd4c3fd1693"
-	companyUUID             = "eac853f5-3859-4c08-8540-55e043719400"
-	organisationUUID        = "5d1510f8-2779-4b74-adab-0a5eb138fca6"
-	personUUID              = "b2fa511e-a031-4d52-b37d-72fd290b39ce"
-	personWithBrandUUID     = "9070a3f1-aa6d-48a7-9d97-f56a47513cef"
+	contentUUID                 = "a435b4ec-b207-4dce-ac0a-f8e7bbef310b"
+	brandParentUUID             = "dbb0bdae-1f0c-1a1a-b0cb-b2227cce2b54"
+	brandChildUUID              = "ff691bf8-8d92-1a1a-8326-c273400bff0b"
+	brandGrandChildUUID         = "ff691bf8-8d92-2a2a-8326-c273400bff0b"
+	financialInstrumentUUID     = "77f613ad-1470-422c-bf7c-1dd4c3fd1693"
+	companyUUID                 = "eac853f5-3859-4c08-8540-55e043719400"
+	organisationUUID            = "5d1510f8-2779-4b74-adab-0a5eb138fca6"
+	personUUID                  = "b2fa511e-a031-4d52-b37d-72fd290b39ce"
+	personWithBrandUUID         = "9070a3f1-aa6d-48a7-9d97-f56a47513cef"
+	industryClassificationUUID  = "49da878c-67ce-4343-9a09-a4a767e584a2"
+	industryClassificationUUID2 = "38ee195d-ebdd-48a9-af4b-c8a322e7b04d"
 )
 
-var allUUIDs = []string{contentUUID, brandParentUUID, brandChildUUID, brandGrandChildUUID, financialInstrumentUUID, companyUUID, organisationUUID, personUUID, personWithBrandUUID}
+var allUUIDs = []string{contentUUID, brandParentUUID, brandChildUUID, brandGrandChildUUID, financialInstrumentUUID, companyUUID, organisationUUID, personUUID, personWithBrandUUID, industryClassificationUUID, industryClassificationUUID2, "eac853f5-3859-4c08-8540-55e043719401", "eac853f5-3859-4c08-8540-55e043719402", "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54", "a7b4786c-aae9-3e3e-93a0-2c82a6383534", "22a60434-a9d5-3a38-a337-fdd904e99f6f"}
 
 func getDatabaseConnection(t *testing.T) neoutils.NeoConnection {
 	if testing.Short() {
@@ -77,13 +79,13 @@ waitLoop:
 			if !open {
 				break waitLoop
 			}
-			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Uuid)
-			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Id)
-			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ApiUrl)
+			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.UUID)
+			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ID)
+			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.APIURL)
 			assert.Equal(t, "Business School video", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Brand", "Classification"}, c.Labels)
 			assert.Empty(t, c.LeiCode)
-			assert.Empty(t, c.FIGI)
+			assert.Empty(t, c.FigiCodes)
 		case <-time.After(3 * time.Second):
 			t.FailNow()
 		}
@@ -187,13 +189,13 @@ waitLoop:
 			if !open {
 				break waitLoop
 			}
-			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Uuid)
-			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.Id)
-			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ApiUrl)
+			assert.Equal(t, "ff691bf8-8d92-1a1a-8326-c273400bff0b", c.UUID)
+			assert.Equal(t, "http://api.ft.com/things/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.ID)
+			assert.Equal(t, "http://api.ft.com/brands/ff691bf8-8d92-1a1a-8326-c273400bff0b", c.APIURL)
 			assert.Equal(t, "Business School video", c.PrefLabel)
 			assertListContainsAll(t, []string{"Thing", "Concept", "Brand", "Classification"}, c.Labels)
 			assert.Empty(t, c.LeiCode)
-			assert.Empty(t, c.FIGI)
+			assert.Empty(t, c.FigiCodes)
 		case <-time.After(3 * time.Second):
 			t.FailNow()
 		}
@@ -206,24 +208,24 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 	assert.NoError(t, svc.Initialise())
 
 	tests := []struct {
-		name                 string
-		fixture              string
-		expectedFactsetRegex string
+		name               string
+		fixture            string
+		expectedFactsetIDs []string
 	}{
 		{
-			name:                 "Organisation with 0 Factset Sources",
-			fixture:              fmt.Sprintf("./fixtures/Organisation-Fakebook-%s.json", companyUUID),
-			expectedFactsetRegex: `^$`,
+			name:               "Organisation with 0 Factset Sources",
+			fixture:            fmt.Sprintf("./fixtures/Organisation-Fakebook-%s.json", companyUUID),
+			expectedFactsetIDs: []string{},
 		},
 		{
-			name:                 "Organisation with 1 Factset Sources",
-			fixture:              fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset.json", companyUUID),
-			expectedFactsetRegex: `^FACTSET1$`,
+			name:               "Organisation with 1 Factset Sources",
+			fixture:            fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset.json", companyUUID),
+			expectedFactsetIDs: []string{"FACTSET1"},
 		},
 		{
-			name:                 "Organisation with 2 Factset Sources",
-			fixture:              fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset2.json", companyUUID),
-			expectedFactsetRegex: `^FACTSET\d;FACTSET\d$`, // We cannot guarantee the order of the IDs
+			name:               "Organisation with 2 Factset Sources",
+			fixture:            fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset2.json", companyUUID),
+			expectedFactsetIDs: []string{"FACTSET1", "FACTSET2"},
 		},
 	}
 
@@ -250,14 +252,78 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 					if !open {
 						break waitLoop
 					}
-					assert.Equal(t, "eac853f5-3859-4c08-8540-55e043719400", c.Uuid)
-					assert.Equal(t, "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400", c.Id)
-					assert.Equal(t, "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400", c.ApiUrl)
+					assert.Equal(t, "eac853f5-3859-4c08-8540-55e043719400", c.UUID)
+					assert.Equal(t, "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400", c.ID)
+					assert.Equal(t, "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400", c.APIURL)
 					assert.Equal(t, "Fakebook", c.PrefLabel)
 					assertListContainsAll(t, []string{"Thing", "Concept", "Organisation", "PublicCompany", "Company"}, c.Labels)
 					assert.Equal(t, "PBLD0EJDB5FWOLXP3B76", c.LeiCode)
-					assert.Equal(t, "BB8000C3P0-R2D2", c.FIGI)
-					assert.Regexp(t, regexp.MustCompile(test.expectedFactsetRegex), c.FactsetId)
+					assert.Equal(t, []string{"BB8000C3P0-R2D2"}, c.FigiCodes)
+
+					sort.Strings(test.expectedFactsetIDs)
+					sort.Strings(c.FactsetIDs)
+					assert.Equal(t, test.expectedFactsetIDs, c.FactsetIDs)
+				case <-time.After(3 * time.Second):
+					t.FailNow()
+				}
+			}
+		})
+	}
+}
+
+func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
+	conn := getDatabaseConnection(t)
+	svc := concepts.NewConceptService(conn)
+	assert.NoError(t, svc.Initialise())
+
+	tests := []struct {
+		name          string
+		knownUUIDs    []string
+		expectedNAICS []NAICSIndustryClassification
+	}{
+		{
+			name:       "Organisation with 1 known and 1 unknown NAICS industry classification",
+			knownUUIDs: []string{industryClassificationUUID},
+			expectedNAICS: []NAICSIndustryClassification{
+				{IndustryIdentifier: "519130", Rank: 1},
+			},
+		},
+		{
+			name:       "Organisation with multiple known NAICS industry classifications",
+			knownUUIDs: []string{industryClassificationUUID, industryClassificationUUID2},
+			expectedNAICS: []NAICSIndustryClassification{
+				{IndustryIdentifier: "519130", Rank: 1}, {IndustryIdentifier: "519131", Rank: 2},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cleanDB(t, conn)
+			writeJSONToConceptService(t, &svc, fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset.json", companyUUID))
+			for _, id := range test.knownUUIDs {
+				writeJSONToConceptService(t, &svc, fmt.Sprintf("./fixtures/NAICS-Industry-Classification-%s.json", id))
+			}
+
+			writeContent(t, conn)
+			writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s-org.json", contentUUID), "v2")
+			neoSvc := NewNeoService(conn, "not-needed")
+
+			conceptCh := make(chan Concept)
+			count, found, err := neoSvc.Read("Organisation", conceptCh)
+
+			assert.NoError(t, err, "Error reading from Neo")
+			assert.True(t, found)
+			assert.Equal(t, 1, count)
+		waitLoop:
+			for {
+				select {
+				case c, open := <-conceptCh:
+					if !open {
+						break waitLoop
+					}
+
+					assert.Equal(t, test.expectedNAICS, c.NAICSIndustryClassifications)
 				case <-time.After(3 * time.Second):
 					t.FailNow()
 				}
@@ -332,9 +398,9 @@ func TestNeoService_ReadPerson(t *testing.T) {
 						if !open {
 							break waitLoop
 						}
-						assert.Equal(t, test.uuid, c.Uuid)
-						assert.Equal(t, "http://api.ft.com/things/"+test.uuid, c.Id)
-						assert.Equal(t, "http://api.ft.com/people/"+test.uuid, c.ApiUrl)
+						assert.Equal(t, test.uuid, c.UUID)
+						assert.Equal(t, "http://api.ft.com/things/"+test.uuid, c.ID)
+						assert.Equal(t, "http://api.ft.com/people/"+test.uuid, c.APIURL)
 						assert.Equal(t, test.expectedPrefLabel, c.PrefLabel)
 						assertListContainsAll(t, []string{"Thing", "Concept", "Person"}, c.Labels)
 					case <-time.After(3 * time.Second):

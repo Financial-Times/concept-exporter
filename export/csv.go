@@ -3,6 +3,7 @@ package export
 import (
 	"bytes"
 	"encoding/csv"
+	"strings"
 
 	"github.com/Financial-Times/concept-exporter/db"
 )
@@ -40,16 +41,7 @@ func (e *CsvExporter) Prepare(conceptTypes []string) error {
 }
 
 func (e *CsvExporter) Write(c db.Concept, conceptType, tid string) error {
-	var rec []string
-	rec = append(rec, c.Id)
-	rec = append(rec, c.PrefLabel)
-	rec = append(rec, c.ApiUrl)
-	if conceptType == "Organisation" {
-		rec = append(rec, c.LeiCode)
-		rec = append(rec, c.FactsetId)
-		rec = append(rec, c.FIGI)
-	}
-
+	rec := conceptToCSVRecord(c, conceptType)
 	return e.Writer[conceptType].Writer.Write(rec)
 }
 
@@ -59,7 +51,28 @@ func (e *CsvExporter) GetFileName(conceptType string) string {
 
 func getHeader(conceptType string) []string {
 	if conceptType == "Organisation" {
-		return []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI"}
+		return []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI", "NAICS"}
 	}
 	return []string{"id", "prefLabel", "apiUrl"}
+}
+
+func conceptToCSVRecord(c db.Concept, conceptType string) []string {
+	var rec []string
+	rec = append(rec, c.ID)
+	rec = append(rec, c.PrefLabel)
+	rec = append(rec, c.APIURL)
+	if conceptType == "Organisation" {
+		rec = append(rec, c.LeiCode)
+		rec = append(rec, strings.Join(c.FactsetIDs, ";"))
+		rec = append(rec, strings.Join(c.FigiCodes, ";"))
+
+		var naics []string
+		for _, ic := range c.NAICSIndustryClassifications {
+			naics = append(naics, ic.IndustryIdentifier)
+		}
+
+		rec = append(rec, strings.Join(naics, ";"))
+	}
+
+	return rec
 }

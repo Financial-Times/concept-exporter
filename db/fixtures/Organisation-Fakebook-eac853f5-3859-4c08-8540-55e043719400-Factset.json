@@ -6,6 +6,16 @@
         "Fakebook Inc"
     ],
     "aggregateHash": "7906209953307351514",
+    "naicsIndustryClassifications": [
+        {
+            "uuid": "49da878c-67ce-4343-9a09-a4a767e584a2",
+            "rank": 1
+        },
+        {
+            "uuid": "38ee195d-ebdd-48a9-af4b-c8a322e7b04d",
+            "rank": 2
+        }
+    ],
     "sourceRepresentations": [
         {
             "uuid": "eac853f5-3859-4c08-8540-55e043719400",
@@ -19,7 +29,17 @@
             "prefLabel": "Fakebook",
             "type": "Organisation",
             "authority": "FACTSET",
-            "authorityValue": "FACTSET1"
+            "authorityValue": "FACTSET1",
+            "naicsIndustryClassifications": [
+                {
+                    "uuid": "49da878c-67ce-4343-9a09-a4a767e584a2",
+                    "rank": 1
+                },
+                {
+                    "uuid": "38ee195d-ebdd-48a9-af4b-c8a322e7b04d",
+                    "rank": 2
+                }
+            ]
         }
     ],
     "alternativeIdentifiers": {

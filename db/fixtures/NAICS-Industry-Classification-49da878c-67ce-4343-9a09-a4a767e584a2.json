@@ -1,0 +1,22 @@
+{
+  "prefUUID": "49da878c-67ce-4343-9a09-a4a767e584a2",
+  "prefLabel": "Internet Publishing and Broadcasting and Web Search Portals",
+  "type": "NAICSIndustryClassification",
+  "aliases": [
+    "Internet Publishing and Broadcasting and Web Search Portals"
+  ],
+  "industryIdentifier": "519130",
+  "sourceRepresentations": [
+    {
+      "uuid": "49da878c-67ce-4343-9a09-a4a767e584a2",
+      "type": "NAICSIndustryClassification",
+      "prefLabel": "Internet Publishing and Broadcasting and Web Search Portals",
+      "authority": "Smartlogic",
+      "authorityValue": "49da878c-67ce-4343-9a09-a4a767e584a2",
+      "aliases": [
+        "Internet Publishing and Broadcasting and Web Search Portals"
+      ],
+      "industryIdentifier": "519130"
+    }
+  ]
+}

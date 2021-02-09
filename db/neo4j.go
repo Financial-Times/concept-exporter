@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/v2/neoutils"
@@ -26,14 +27,20 @@ func NewNeoService(conn neoutils.NeoConnection, neoURL string) *NeoService {
 
 //Concept is the model for the data read from the data source
 type Concept struct {
-	Id        string
-	Uuid      string
-	PrefLabel string
-	ApiUrl    string
-	Labels    []string
-	LeiCode   string
-	FactsetId string
-	FIGI      string
+	ID                           string
+	UUID                         string
+	PrefLabel                    string
+	APIURL                       string
+	Labels                       []string
+	LeiCode                      string
+	FactsetIDs                   []string
+	FigiCodes                    []string
+	NAICSIndustryClassifications []NAICSIndustryClassification
+}
+
+type NAICSIndustryClassification struct {
+	IndustryIdentifier string `json:"id,omitempty"`
+	Rank               int    `json:"rank,omitempty"`
 }
 
 func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool, error) {
@@ -51,11 +58,13 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 		WITH DISTINCT x
 		MATCH (x)<-[:EQUIVALENT_TO]-(concept)
 		OPTIONAL MATCH (concept)<-[:ISSUED_BY]-(fi:FinancialInstrument)
+		OPTIONAL MATCH (concept)-[hasICRel:HAS_INDUSTRY_CLASSIFICATION]->(:NAICSIndustryClassification)-[:EQUIVALENT_TO]->(naicsCanonical:NAICSIndustryClassification)
 		WITH x, collect(DISTINCT CASE concept.authority WHEN 'FACTSET' THEN concept.authorityValue END) AS factsetIds,
-			collect(DISTINCT fi.figiCode) as figiCodes 
+			collect(DISTINCT fi.figiCode) as figiCodes, collect(DISTINCT {id: naicsCanonical.industryIdentifier, rank: hasICRel.rank}) as naicsIndustryClassifications 
 		RETURN x.prefUUID AS Uuid, labels(x) AS Labels, x.prefLabel AS PrefLabel, x.leiCode AS leiCode,
-			reduce(s=head(factsetIds), n IN tail(factsetIds) | s + ';' + n) AS factsetId,
-			reduce(s=head(figiCodes), n IN tail(figiCodes) | s + ';' + n) AS FIGI
+			factsetIds,
+			figiCodes,
+			naicsIndustryClassifications
 		`
 	}
 	if conceptType == "Person" {
@@ -84,8 +93,9 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 	go func() {
 		defer close(conceptCh)
 		for _, c := range results {
-			c.ApiUrl = mapper.APIURL(c.Uuid, c.Labels, "")
-			c.Id = mapper.IDURL(c.Uuid)
+			c.APIURL = mapper.APIURL(c.UUID, c.Labels, "")
+			c.ID = mapper.IDURL(c.UUID)
+			c.NAICSIndustryClassifications = cleanNAICS(c.NAICSIndustryClassifications)
 			conceptCh <- c
 		}
 	}()
@@ -98,4 +108,19 @@ func (s *NeoService) CheckConnectivity(conn neoutils.NeoConnection) (string, err
 		return "Could not connect to Neo", err
 	}
 	return "Neo could be reached", nil
+}
+
+func cleanNAICS(naics []NAICSIndustryClassification) []NAICSIndustryClassification {
+	var res []NAICSIndustryClassification
+	for _, ic := range naics {
+		if ic.IndustryIdentifier != "" {
+			res = append(res, ic)
+		}
+	}
+
+	sort.SliceStable(res, func(k, l int) bool {
+		return res[k].Rank < res[l].Rank
+	})
+
+	return res
 }
