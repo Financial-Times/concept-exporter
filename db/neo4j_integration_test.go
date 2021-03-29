@@ -551,9 +551,8 @@ func cleanDB(t *testing.T, db neoutils.NeoConnection) {
 	for i, uuid := range allUUIDs {
 		qs[i] = &neoism.CypherQuery{
 			Statement: fmt.Sprintf(`MATCH (a:Thing{uuid:"%s"})
-			OPTIONAL MATCH (a)<-[:IDENTIFIES]-(i:Identifier)
 			OPTIONAL MATCH (a)-[:EQUIVALENT_TO]-(t:Thing)
-			DETACH DELETE i, t, a`, uuid),
+			DETACH DELETE t, a`, uuid),
 		}
 	}
 	err := db.CypherBatch(qs)
