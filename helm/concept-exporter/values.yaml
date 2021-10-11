@@ -18,3 +18,4 @@ env:
   goroutines: "100"
   s3Writer:
     baseUrl: "http://upp-exports-rw-s3:8080"
+  dbDriverLogLevel: "warning"
