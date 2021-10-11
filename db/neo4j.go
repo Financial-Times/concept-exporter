@@ -1,12 +1,12 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
+	cmneo4j "github.com/Financial-Times/cm-neo4j-driver"
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
-	"github.com/Financial-Times/neo-utils-go/v2/neoutils"
-	"github.com/jmcvetta/neoism"
 )
 
 //Service reads from a data source and uses a channel to iterate on the retrieved values for the given concept type
@@ -16,13 +16,13 @@ type Service interface {
 
 //NeoService is the implementation of Service for Neo4j
 type NeoService struct {
-	Connection neoutils.NeoConnection
-	NeoURL     string
+	Driver *cmneo4j.Driver
+	NeoURL string
 }
 
 //Returns a new NeoService
-func NewNeoService(conn neoutils.NeoConnection, neoURL string) *NeoService {
-	return &NeoService{Connection: conn, NeoURL: neoURL}
+func NewNeoService(driver *cmneo4j.Driver, neoURL string) *NeoService {
+	return &NeoService{Driver: driver, NeoURL: neoURL}
 }
 
 //Concept is the model for the data read from the data source
@@ -75,20 +75,20 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 		`
 	}
 
-	query := &neoism.CypherQuery{
-		Statement: stmt,
-		Result:    &results,
+	query := &cmneo4j.Query{
+		Cypher: stmt,
+		Result: &results,
 	}
 
-	err := s.Connection.CypherBatch([]*neoism.CypherQuery{query})
+	err := s.Driver.Read(query)
 
+	if errors.Is(err, cmneo4j.ErrNoResultsFound) {
+		close(conceptCh)
+		return 0, false, nil
+	}
 	if err != nil {
 		close(conceptCh)
 		return 0, false, err
-	}
-	if len(results) == 0 {
-		close(conceptCh)
-		return 0, false, nil
 	}
 	go func() {
 		defer close(conceptCh)
@@ -102,8 +102,8 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 	return len(results), true, nil
 }
 
-func (s *NeoService) CheckConnectivity(conn neoutils.NeoConnection) (string, error) {
-	err := neoutils.Check(conn)
+func (s *NeoService) CheckConnectivity() (string, error) {
+	err := s.Driver.VerifyConnectivity()
 	if err != nil {
 		return "Could not connect to Neo", err
 	}
