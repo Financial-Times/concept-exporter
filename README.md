@@ -19,6 +19,9 @@ There are 2 types of exports:
         go install
 
 2. Run unit and integration tests:
+
+    In order to execute the integration tests you must provide GITHUB_USERNAME and GITHUB_TOKEN values, because the service is depending on internal repositories.
+
     ```
     GITHUB_USERNAME=<GITHUB_USERNAME> GITHUB_TOKEN=<TOKEN> \
     docker-compose -f docker-compose-tests.yml up -d --build && \

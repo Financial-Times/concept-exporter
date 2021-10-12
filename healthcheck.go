@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	cmneo4j "github.com/Financial-Times/cm-neo4j-driver"
 	"github.com/Financial-Times/concept-exporter/concept"
 	"github.com/Financial-Times/concept-exporter/db"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
@@ -20,7 +19,6 @@ type healthService struct {
 	config *healthConfig
 	checks []health.Check
 	client *http.Client
-	driver *cmneo4j.Driver
 }
 
 type healthConfig struct {
