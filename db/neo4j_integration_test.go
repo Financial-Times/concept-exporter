@@ -16,7 +16,6 @@ import (
 	cmneo4j "github.com/Financial-Times/cm-neo4j-driver"
 	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
 	"github.com/Financial-Times/content-rw-neo4j/content"
-	v1Logger "github.com/Financial-Times/go-logger"
 	logger "github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/neo-utils-go/v2/neoutils"
 	"github.com/stretchr/testify/assert"
@@ -38,10 +37,6 @@ const (
 )
 
 var allUUIDs = []string{contentUUID, brandParentUUID, brandChildUUID, brandGrandChildUUID, financialInstrumentUUID, companyUUID, organisationUUID, personUUID, personWithBrandUUID, industryClassificationUUID, industryClassificationUUID2, "eac853f5-3859-4c08-8540-55e043719401", "eac853f5-3859-4c08-8540-55e043719402", "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54", "a7b4786c-aae9-3e3e-93a0-2c82a6383534", "22a60434-a9d5-3a38-a337-fdd904e99f6f"}
-
-func init() {
-	v1Logger.InitLogger("concept-exporter-integration-tests", "ERROR")
-}
 
 func getNeo4jDriver(t *testing.T) *cmneo4j.Driver {
 	url := os.Getenv("NEO4J_BOLT_TEST_URL")
