@@ -13,11 +13,11 @@ import (
 
 	"github.com/Financial-Times/annotations-rw-neo4j/v3/annotations"
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	cmneo4j "github.com/Financial-Times/cm-neo4j-driver"
 	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
 	"github.com/Financial-Times/content-rw-neo4j/content"
 	logger "github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/neo-utils-go/v2/neoutils"
-	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,6 +38,20 @@ const (
 
 var allUUIDs = []string{contentUUID, brandParentUUID, brandChildUUID, brandGrandChildUUID, financialInstrumentUUID, companyUUID, organisationUUID, personUUID, personWithBrandUUID, industryClassificationUUID, industryClassificationUUID2, "eac853f5-3859-4c08-8540-55e043719401", "eac853f5-3859-4c08-8540-55e043719402", "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54", "a7b4786c-aae9-3e3e-93a0-2c82a6383534", "22a60434-a9d5-3a38-a337-fdd904e99f6f"}
 
+func getNeo4jDriver(t *testing.T) *cmneo4j.Driver {
+	url := os.Getenv("NEO4J_BOLT_TEST_URL")
+	if url == "" {
+		url = "bolt://localhost:7687"
+	}
+
+	log := logger.NewUPPLogger("cm-neo4j-driver-logger", "ERROR")
+	driver, err := cmneo4j.NewDefaultDriver(url, log)
+
+	assert.NoError(t, err, "Creating new neo driver failed")
+
+	return driver
+}
+
 func getDatabaseConnection(t *testing.T) neoutils.NeoConnection {
 	if testing.Short() {
 		t.Skip("Neo4j integration for long tests only.")
@@ -55,16 +69,17 @@ func getDatabaseConnection(t *testing.T) neoutils.NeoConnection {
 }
 
 func TestNeoService_ReadBrand(t *testing.T) {
+	driver := getNeo4jDriver(t)
 	conn := getDatabaseConnection(t)
 	svc := concepts.NewConceptService(conn)
 	assert.NoError(t, svc.Initialise())
 
-	cleanDB(t, conn)
+	cleanDB(t, driver)
 	writeBrands(t, &svc)
 	writeContent(t, conn)
 	writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s.json", contentUUID), "v1")
 
-	neoSvc := NewNeoService(conn, "not-needed")
+	neoSvc := NewNeoService(driver, "not-needed")
 
 	conceptCh := make(chan Concept)
 	count, found, err := neoSvc.Read("Brand", conceptCh)
@@ -93,6 +108,7 @@ waitLoop:
 }
 
 func TestNeoService_DoNotReadBrokenConcepts(t *testing.T) {
+	driver := getNeo4jDriver(t)
 	conn := getDatabaseConnection(t)
 	svc := concepts.NewConceptService(conn)
 	assert.NoError(t, svc.Initialise())
@@ -133,26 +149,24 @@ func TestNeoService_DoNotReadBrokenConcepts(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cleanDB(t, conn)
+			cleanDB(t, driver)
 			writeJSONToConceptService(t, &svc, test.conceptFixture)
 			writeContent(t, conn)
 			writeAnnotation(t, conn, test.annotationsFixture, test.annotationsPlatform)
 
 			// Delete canonical node so we can check that we are not returning broken concepts
-			results := []Concept{}
-			query := &neoism.CypherQuery{
-				Statement: "MATCH (c:Concept{prefUUID:{uuid}}) DETACH DELETE c",
-				Parameters: neoism.Props{
+			query := &cmneo4j.Query{
+				Cypher: "MATCH (c:Concept{prefUUID:$uuid}) DETACH DELETE c",
+				Params: map[string]interface{}{
 					"uuid": test.brokenConceptUUID,
 				},
-				Result: &results,
 			}
-			err := conn.CypherBatch([]*neoism.CypherQuery{query})
+			err := driver.Write(query)
 			if err != nil {
 				t.Fatalf("Error deleting canonical node: %v", err)
 			}
 
-			neoSvc := NewNeoService(conn, "not-needed")
+			neoSvc := NewNeoService(driver, "not-needed")
 
 			conceptCh := make(chan Concept)
 			count, found, err := neoSvc.Read(test.conceptType, conceptCh)
@@ -165,16 +179,17 @@ func TestNeoService_DoNotReadBrokenConcepts(t *testing.T) {
 }
 
 func TestNeoService_ReadHasBrand(t *testing.T) {
+	driver := getNeo4jDriver(t)
 	conn := getDatabaseConnection(t)
 	svc := concepts.NewConceptService(conn)
 	assert.NoError(t, svc.Initialise())
 
-	cleanDB(t, conn)
+	cleanDB(t, driver)
 	writeBrands(t, &svc)
 	writeContent(t, conn)
 	writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s-hasBrand.json", contentUUID), "v1")
 
-	neoSvc := NewNeoService(conn, "not-needed")
+	neoSvc := NewNeoService(driver, "not-needed")
 
 	conceptCh := make(chan Concept)
 	count, found, err := neoSvc.Read("Brand", conceptCh)
@@ -203,6 +218,7 @@ waitLoop:
 }
 
 func TestNeoService_ReadOrganisation(t *testing.T) {
+	driver := getNeo4jDriver(t)
 	conn := getDatabaseConnection(t)
 	svc := concepts.NewConceptService(conn)
 	assert.NoError(t, svc.Initialise())
@@ -231,13 +247,13 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cleanDB(t, conn)
+			cleanDB(t, driver)
 			writeJSONToConceptService(t, &svc, test.fixture)
 			writeJSONToConceptService(t, &svc, fmt.Sprintf("./fixtures/FinancialInstrument-%s.json", financialInstrumentUUID))
 
 			writeContent(t, conn)
 			writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s-org.json", contentUUID), "v2")
-			neoSvc := NewNeoService(conn, "not-needed")
+			neoSvc := NewNeoService(driver, "not-needed")
 
 			conceptCh := make(chan Concept)
 			count, found, err := neoSvc.Read("Organisation", conceptCh)
@@ -272,6 +288,7 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 }
 
 func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
+	driver := getNeo4jDriver(t)
 	conn := getDatabaseConnection(t)
 	svc := concepts.NewConceptService(conn)
 	assert.NoError(t, svc.Initialise())
@@ -299,7 +316,7 @@ func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cleanDB(t, conn)
+			cleanDB(t, driver)
 			writeJSONToConceptService(t, &svc, fmt.Sprintf("./fixtures/Organisation-Fakebook-%s-Factset.json", companyUUID))
 			for _, id := range test.knownUUIDs {
 				writeJSONToConceptService(t, &svc, fmt.Sprintf("./fixtures/NAICS-Industry-Classification-%s.json", id))
@@ -307,7 +324,7 @@ func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
 
 			writeContent(t, conn)
 			writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s-org.json", contentUUID), "v2")
-			neoSvc := NewNeoService(conn, "not-needed")
+			neoSvc := NewNeoService(driver, "not-needed")
 
 			conceptCh := make(chan Concept)
 			count, found, err := neoSvc.Read("Organisation", conceptCh)
@@ -333,6 +350,7 @@ func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
 }
 
 func TestNeoService_ReadPerson(t *testing.T) {
+	driver := getNeo4jDriver(t)
 	conn := getDatabaseConnection(t)
 	svc := concepts.NewConceptService(conn)
 	assert.NoError(t, svc.Initialise())
@@ -376,11 +394,11 @@ func TestNeoService_ReadPerson(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cleanDB(t, conn)
+			cleanDB(t, driver)
 			writeJSONToConceptService(t, &svc, test.conceptFixture)
 			writeContent(t, conn)
 			writeAnnotation(t, conn, test.annotationsFixture, "pac")
-			neoSvc := NewNeoService(conn, "not-needed")
+			neoSvc := NewNeoService(driver, "not-needed")
 
 			conceptCh := make(chan Concept)
 			count, found, err := neoSvc.Read(test.readAs, conceptCh)
@@ -413,9 +431,9 @@ func TestNeoService_ReadPerson(t *testing.T) {
 }
 
 func TestNeoService_ReadWithoutResult(t *testing.T) {
-	conn := getDatabaseConnection(t)
-	cleanDB(t, conn)
-	neoSvc := NewNeoService(conn, "not-needed")
+	driver := getNeo4jDriver(t)
+	cleanDB(t, driver)
+	neoSvc := NewNeoService(driver, "not-needed")
 
 	conceptCh := make(chan Concept)
 	count, found, err := neoSvc.Read("Brand", conceptCh)
@@ -437,35 +455,14 @@ waitLoop:
 	}
 }
 
-type interceptingCypherConn struct {
-	db         neoutils.NeoConnection
-	shouldFail bool
-}
-
-func (c interceptingCypherConn) CypherBatch(cypher []*neoism.CypherQuery) error {
-	if c.shouldFail {
-		return fmt.Errorf("BOOM!")
-	}
-	return c.db.CypherBatch(cypher)
-}
-
-func (c interceptingCypherConn) EnsureConstraints(constraints map[string]string) error {
-	return c.db.EnsureConstraints(constraints)
-}
-
-func (c interceptingCypherConn) EnsureIndexes(indexes map[string]string) error {
-	return c.db.EnsureIndexes(indexes)
-}
-
 func TestNeoService_ReadWithError(t *testing.T) {
-	conn := &interceptingCypherConn{db: getDatabaseConnection(t), shouldFail: true}
-	neoSvc := NewNeoService(conn, "not-needed")
+	driver := getNeo4jDriver(t)
+	neoSvc := NewNeoService(driver, "not-needed")
 
 	conceptCh := make(chan Concept)
-	count, found, err := neoSvc.Read("Brand", conceptCh)
+	count, found, err := neoSvc.Read("Invalid Concept", conceptCh)
 
-	assert.Error(t, err, "Error reading from Neo")
-	assert.Equal(t, "BOOM!", err.Error())
+	assert.Error(t, err, "Expected an error when reading from Neo")
 	assert.False(t, found)
 	assert.Equal(t, 0, count)
 waitLoop:
@@ -546,15 +543,18 @@ func writeJSONToAnnotationService(t *testing.T, service annotations.Service, pat
 }
 
 //DELETES ALL DATA! DO NOT USE IN PRODUCTION!!!
-func cleanDB(t *testing.T, db neoutils.NeoConnection) {
-	qs := make([]*neoism.CypherQuery, len(allUUIDs))
+func cleanDB(t *testing.T, driver *cmneo4j.Driver) {
+	qs := make([]*cmneo4j.Query, len(allUUIDs))
 	for i, uuid := range allUUIDs {
-		qs[i] = &neoism.CypherQuery{
-			Statement: fmt.Sprintf(`MATCH (a:Thing{uuid:"%s"})
+		qs[i] = &cmneo4j.Query{
+			Cypher: `MATCH (a:Thing{uuid:$uuid})
 			OPTIONAL MATCH (a)-[:EQUIVALENT_TO]-(t:Thing)
-			DETACH DELETE t, a`, uuid),
+			DETACH DELETE t, a`,
+			Params: map[string]interface{}{
+				"uuid": uuid,
+			},
 		}
 	}
-	err := db.CypherBatch(qs)
+	err := driver.Write(qs...)
 	assert.NoError(t, err)
 }

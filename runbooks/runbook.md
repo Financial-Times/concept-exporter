@@ -18,22 +18,6 @@ Bronze
 
 Production
 
-## Delivered By
-
-content
-
-## Supported By
-
-content
-
-## Known About By
-
-- elitsa.pavlova
-- kalin.arsov
-- miroslav.gatsanoga
-- ivan.nikolov
-- marina.chompalova
-
 ## Host Platform
 
 AWS
@@ -49,11 +33,6 @@ No
 ## Contains Sensitive Data
 
 No
-
-## Dependencies
-
-- upp-neo4j-cluster
-- upp-exports-rw-s3
 
 ## Failover Architecture Type
 
@@ -110,7 +89,7 @@ Service in UPP K8S delivery clusters:
 
 ## First Line Troubleshooting
 
-<https://github.com/Financial-Times/upp-docs/tree/master/guides/ops/first-line-troubleshooting>
+<https://github.com/Financial-Times/upp-docs/tree/main/guides/ops/first-line-troubleshooting>
 
 ## Second Line Troubleshooting
 

@@ -41,7 +41,9 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: global-config
-              key: neo4j.read.write.url
+              key: neo4j.cluster.bolt.url
+        - name: DB_DRIVER_LOG_LEVEL
+          value: "{{ .Values.env.dbDriverLogLevel }}"
         ports:
         - containerPort: 8080
         livenessProbe:

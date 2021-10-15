@@ -19,7 +19,11 @@ There are 2 types of exports:
         go install
 
 2. Run unit and integration tests:
+
+    In order to execute the integration tests you must provide GITHUB_USERNAME and GITHUB_TOKEN values, because the service is depending on internal repositories.
+
     ```
+    GITHUB_USERNAME=<GITHUB_USERNAME> GITHUB_TOKEN=<TOKEN> \
     docker-compose -f docker-compose-tests.yml up -d --build && \
     docker logs -f test-runner && \
     docker-compose -f docker-compose-tests.yml down -v
@@ -39,7 +43,7 @@ Options:
           --app-system-code="concept-exporter"                                      System Code of the application ($APP_SYSTEM_CODE)
           --app-name="concept-exporter"                                             Application name ($APP_NAME)
           --port="8080"                                                             Port to listen on ($APP_PORT)
-          --neo-url="http://localhost:7474/db/data"                                 Neo4j endpoint URL ($NEO_URL)
+          --neo-url="bolt://localhost:7687"                                         Neo4j endpoint URL ($NEO_URL)
           --s3WriterBaseURL="http://localhost:8080"                                 Base URL to S3 writer endpoint ($S3_WRITER_BASE_URL)
           --s3WriterHealthURL="http://localhost:8080/__gtg"                         Health URL to S3 writer endpoint ($S3_WRITER_HEALTH_URL)
           --conceptTypes=["Brand", "Topic", "Location", "Person", "Organisation"]   Concept types to support ($CONCEPT_TYPES)

@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	cmneo4j "github.com/Financial-Times/cm-neo4j-driver"
 	"github.com/Financial-Times/concept-exporter/concept"
 	"github.com/Financial-Times/concept-exporter/db"
 	"github.com/Financial-Times/concept-exporter/export"
@@ -16,7 +17,6 @@ import (
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/go-logger/v2"
 	"github.com/Financial-Times/http-handlers-go/v2/httphandlers"
-	"github.com/Financial-Times/neo-utils-go/v2/neoutils"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
 	cli "github.com/jawher/mow.cli"
@@ -49,7 +49,7 @@ func main() {
 	})
 	neoURL := app.String(cli.StringOpt{
 		Name:   "neo-url",
-		Value:  "http://localhost:7474/db/data",
+		Value:  "bolt://localhost:7687",
 		Desc:   "neo4j endpoint URL",
 		EnvVar: "NEO_URL",
 	})
@@ -77,18 +77,24 @@ func main() {
 		Desc:   "Log level for the service",
 		EnvVar: "LOG_LEVEL",
 	})
+	dbDriverLogLevel := app.String(cli.StringOpt{
+		Name:   "db-driver-log-level",
+		Value:  "warning",
+		Desc:   "Log level for the driver's logger",
+		EnvVar: "DB_DRIVER_LOG_LEVEL",
+	})
 
 	log := logger.NewUPPLogger(*appName, *logLevel)
+	driverLog := logger.NewUPPLogger(*appName+"-cmneo4j-driver", *dbDriverLogLevel)
 
 	app.Action = func() {
 		log.WithField("service_name", *appName).Info("Service started")
-		conf := neoutils.DefaultConnectionConfig()
-		conf.HTTPClient.Timeout = 10 * time.Minute
-		neoConn, err := neoutils.Connect(*neoURL, conf, log)
 
+		driver, err := cmneo4j.NewDefaultDriver(*neoURL, driverLog)
 		if err != nil {
-			log.Fatalf("Can't connect to neo4j, error=[%s]\n", err)
+			log.WithError(err).Fatalf("Couldn't create a new driver")
 		}
+
 		tr := &http.Transport{
 			MaxIdleConnsPerHost: 128,
 			Dial: (&net.Dialer{
@@ -106,7 +112,7 @@ func main() {
 		client.Concurrency = 1
 
 		uploader := &concept.S3Updater{Client: client, S3WriterBaseURL: *s3WriterBaseURL, S3WriterHealthURL: *s3WriterHealthURL}
-		neoService := db.NewNeoService(neoConn, *neoURL)
+		neoService := db.NewNeoService(driver, *neoURL)
 		fullExporter := export.NewFullExporter(30, uploader, concept.NewNeoInquirer(neoService, log),
 			export.NewCsvExporter(), log)
 

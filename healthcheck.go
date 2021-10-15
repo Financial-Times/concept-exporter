@@ -10,18 +10,15 @@ import (
 	"github.com/Financial-Times/concept-exporter/db"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/neo-utils-go/v2/neoutils"
 	"github.com/Financial-Times/service-status-go/gtg"
 )
 
 const healthPath = "/__health"
 
 type healthService struct {
-	config  *healthConfig
-	checks  []health.Check
-	client  *http.Client
-	conn    neoutils.NeoConnection
-	connErr error
+	config *healthConfig
+	checks []health.Check
+	client *http.Client
 }
 
 type healthConfig struct {
@@ -51,11 +48,6 @@ func newHealthService(config *healthConfig) *healthService {
 		Transport: tr,
 		Timeout:   3 * time.Second,
 	}
-	conf := neoutils.DefaultConnectionConfig()
-	conf.HTTPClient.Timeout = 3 * time.Second
-	conf.HTTPClient.Transport.(*http.Transport).IdleConnTimeout = 3 * time.Second
-	conf.HTTPClient.Transport.(*http.Transport).ResponseHeaderTimeout = 3 * time.Second
-	svc.conn, svc.connErr = neoutils.Connect(config.neoService.NeoURL, conf, config.log)
 
 	return svc
 }
@@ -68,10 +60,7 @@ func (service *healthService) NeoCheck() health.Check {
 		Severity:         2,
 		TechnicalSummary: fmt.Sprintf("The service is unable to connect to Neo4j (%s). Export won't work because of this", service.config.neoService.NeoURL),
 		Checker: func() (string, error) {
-			if service.connErr != nil {
-				return "Could not make initial connection to Neo", service.connErr
-			}
-			return service.config.neoService.CheckConnectivity(service.conn)
+			return service.config.neoService.CheckConnectivity()
 		},
 	}
 }
