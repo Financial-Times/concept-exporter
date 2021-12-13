@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package db
@@ -11,13 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Financial-Times/annotations-rw-neo4j/v3/annotations"
-	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	"github.com/Financial-Times/annotations-rw-neo4j/v4/annotations"
+	"github.com/Financial-Times/base-ft-rw-app-go/v2/baseftrwapp"
 	cmneo4j "github.com/Financial-Times/cm-neo4j-driver"
 	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
-	"github.com/Financial-Times/content-rw-neo4j/content"
+	"github.com/Financial-Times/content-rw-neo4j/v3/content"
 	logger "github.com/Financial-Times/go-logger/v2"
-	"github.com/Financial-Times/neo-utils-go/v2/neoutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,12 +39,12 @@ const (
 var allUUIDs = []string{contentUUID, brandParentUUID, brandChildUUID, brandGrandChildUUID, financialInstrumentUUID, companyUUID, organisationUUID, personUUID, personWithBrandUUID, industryClassificationUUID, industryClassificationUUID2, "eac853f5-3859-4c08-8540-55e043719401", "eac853f5-3859-4c08-8540-55e043719402", "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54", "a7b4786c-aae9-3e3e-93a0-2c82a6383534", "22a60434-a9d5-3a38-a337-fdd904e99f6f"}
 
 func getNeo4jDriver(t *testing.T) *cmneo4j.Driver {
-	url := os.Getenv("NEO4J_BOLT_TEST_URL")
+	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
 		url = "bolt://localhost:7687"
 	}
 
-	log := logger.NewUPPLogger("cm-neo4j-driver-logger", "ERROR")
+	log := logger.NewUPPLogger("concept-exporter-test", "PANIC")
 	driver, err := cmneo4j.NewDefaultDriver(url, log)
 
 	assert.NoError(t, err, "Creating new neo driver failed")
@@ -52,32 +52,17 @@ func getNeo4jDriver(t *testing.T) *cmneo4j.Driver {
 	return driver
 }
 
-func getDatabaseConnection(t *testing.T) neoutils.NeoConnection {
-	if testing.Short() {
-		t.Skip("Neo4j integration for long tests only.")
-	}
-	url := os.Getenv("NEO4J_TEST_URL")
-	if url == "" {
-		url = "http://localhost:7474/db/data"
-	}
-
-	conf := neoutils.DefaultConnectionConfig()
-	conf.Transactional = false
-	conn, err := neoutils.Connect(url, conf, logger.NewUPPLogger("test-concept-exporter", "PANIC"))
-	assert.NoError(t, err, "Failed to connect to Neo4j")
-	return conn
-}
-
 func TestNeoService_ReadBrand(t *testing.T) {
 	driver := getNeo4jDriver(t)
-	conn := getDatabaseConnection(t)
-	svc := concepts.NewConceptService(conn)
+
+	log := logger.NewUPPLogger("concept-exporter-test", "PANIC")
+	svc := concepts.NewConceptService(driver, log)
 	assert.NoError(t, svc.Initialise())
 
 	cleanDB(t, driver)
 	writeBrands(t, &svc)
-	writeContent(t, conn)
-	writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s.json", contentUUID), "v1")
+	writeContent(t, driver)
+	writeAnnotation(t, driver, fmt.Sprintf("./fixtures/Annotations-%s.json", contentUUID), "v1")
 
 	neoSvc := NewNeoService(driver, "not-needed")
 
@@ -109,8 +94,9 @@ waitLoop:
 
 func TestNeoService_DoNotReadBrokenConcepts(t *testing.T) {
 	driver := getNeo4jDriver(t)
-	conn := getDatabaseConnection(t)
-	svc := concepts.NewConceptService(conn)
+
+	log := logger.NewUPPLogger("concept-exporter-test", "PANIC")
+	svc := concepts.NewConceptService(driver, log)
 	assert.NoError(t, svc.Initialise())
 
 	tests := []struct {
@@ -151,8 +137,8 @@ func TestNeoService_DoNotReadBrokenConcepts(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cleanDB(t, driver)
 			writeJSONToConceptService(t, &svc, test.conceptFixture)
-			writeContent(t, conn)
-			writeAnnotation(t, conn, test.annotationsFixture, test.annotationsPlatform)
+			writeContent(t, driver)
+			writeAnnotation(t, driver, test.annotationsFixture, test.annotationsPlatform)
 
 			// Delete canonical node so we can check that we are not returning broken concepts
 			query := &cmneo4j.Query{
@@ -180,14 +166,15 @@ func TestNeoService_DoNotReadBrokenConcepts(t *testing.T) {
 
 func TestNeoService_ReadHasBrand(t *testing.T) {
 	driver := getNeo4jDriver(t)
-	conn := getDatabaseConnection(t)
-	svc := concepts.NewConceptService(conn)
+
+	log := logger.NewUPPLogger("concept-exporter-test", "PANIC")
+	svc := concepts.NewConceptService(driver, log)
 	assert.NoError(t, svc.Initialise())
 
 	cleanDB(t, driver)
 	writeBrands(t, &svc)
-	writeContent(t, conn)
-	writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s-hasBrand.json", contentUUID), "v1")
+	writeContent(t, driver)
+	writeAnnotation(t, driver, fmt.Sprintf("./fixtures/Annotations-%s-hasBrand.json", contentUUID), "v1")
 
 	neoSvc := NewNeoService(driver, "not-needed")
 
@@ -219,8 +206,9 @@ waitLoop:
 
 func TestNeoService_ReadOrganisation(t *testing.T) {
 	driver := getNeo4jDriver(t)
-	conn := getDatabaseConnection(t)
-	svc := concepts.NewConceptService(conn)
+
+	log := logger.NewUPPLogger("concept-exporter-test", "PANIC")
+	svc := concepts.NewConceptService(driver, log)
 	assert.NoError(t, svc.Initialise())
 
 	tests := []struct {
@@ -251,8 +239,8 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 			writeJSONToConceptService(t, &svc, test.fixture)
 			writeJSONToConceptService(t, &svc, fmt.Sprintf("./fixtures/FinancialInstrument-%s.json", financialInstrumentUUID))
 
-			writeContent(t, conn)
-			writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s-org.json", contentUUID), "v2")
+			writeContent(t, driver)
+			writeAnnotation(t, driver, fmt.Sprintf("./fixtures/Annotations-%s-org.json", contentUUID), "v2")
 			neoSvc := NewNeoService(driver, "not-needed")
 
 			conceptCh := make(chan Concept)
@@ -289,8 +277,9 @@ func TestNeoService_ReadOrganisation(t *testing.T) {
 
 func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
 	driver := getNeo4jDriver(t)
-	conn := getDatabaseConnection(t)
-	svc := concepts.NewConceptService(conn)
+
+	log := logger.NewUPPLogger("concept-exporter-test", "PANIC")
+	svc := concepts.NewConceptService(driver, log)
 	assert.NoError(t, svc.Initialise())
 
 	tests := []struct {
@@ -322,8 +311,8 @@ func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
 				writeJSONToConceptService(t, &svc, fmt.Sprintf("./fixtures/NAICS-Industry-Classification-%s.json", id))
 			}
 
-			writeContent(t, conn)
-			writeAnnotation(t, conn, fmt.Sprintf("./fixtures/Annotations-%s-org.json", contentUUID), "v2")
+			writeContent(t, driver)
+			writeAnnotation(t, driver, fmt.Sprintf("./fixtures/Annotations-%s-org.json", contentUUID), "v2")
 			neoSvc := NewNeoService(driver, "not-needed")
 
 			conceptCh := make(chan Concept)
@@ -351,8 +340,9 @@ func TestNeoService_ReadOrganisationWithNAICS(t *testing.T) {
 
 func TestNeoService_ReadPerson(t *testing.T) {
 	driver := getNeo4jDriver(t)
-	conn := getDatabaseConnection(t)
-	svc := concepts.NewConceptService(conn)
+
+	log := logger.NewUPPLogger("concept-exporter-test", "PANIC")
+	svc := concepts.NewConceptService(driver, log)
 	assert.NoError(t, svc.Initialise())
 
 	tests := []struct {
@@ -396,8 +386,8 @@ func TestNeoService_ReadPerson(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cleanDB(t, driver)
 			writeJSONToConceptService(t, &svc, test.conceptFixture)
-			writeContent(t, conn)
-			writeAnnotation(t, conn, test.annotationsFixture, "pac")
+			writeContent(t, driver)
+			writeAnnotation(t, driver, test.annotationsFixture, "pac")
 			neoSvc := NewNeoService(driver, "not-needed")
 
 			conceptCh := make(chan Concept)
@@ -493,14 +483,14 @@ func assertListContainsAll(t *testing.T, list interface{}, items ...interface{})
 	}
 }
 
-func writeAnnotation(t *testing.T, conn neoutils.NeoConnection, pathToJson, platform string) {
-	annrw := annotations.NewCypherAnnotationsService(conn)
+func writeAnnotation(t *testing.T, driver *cmneo4j.Driver, pathToJSON, platform string) {
+	annrw := annotations.NewCypherAnnotationsService(driver)
 	assert.NoError(t, annrw.Initialise())
-	writeJSONToAnnotationService(t, annrw, pathToJson, contentUUID, platform)
+	writeJSONToAnnotationService(t, annrw, pathToJSON, contentUUID, platform)
 }
 
-func writeContent(t *testing.T, conn neoutils.NeoConnection) {
-	contentRW := content.NewCypherContentService(conn)
+func writeContent(t *testing.T, driver *cmneo4j.Driver) {
+	contentRW := content.NewContentService(driver)
 	require.NoError(t, contentRW.Initialise())
 	writeJSONToContentService(t, contentRW, fmt.Sprintf("./fixtures/Content-%s.json", contentUUID))
 }
