@@ -36,6 +36,13 @@ type Concept struct {
 	FactsetIDs                   []string
 	FigiCodes                    []string
 	NAICSIndustryClassifications []NAICSIndustryClassification
+	AlternativeLabels            []string
+	// AlternativeLabels contains the values of:
+	Aliases     []string
+	FormerNames []string
+	ProperName  string
+	ShortName   string
+	TradeNames  []string
 }
 
 type NAICSIndustryClassification struct {
@@ -48,7 +55,8 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 	stmt := fmt.Sprintf(`
 		MATCH (x:%s)<-[:EQUIVALENT_TO]-(:Concept)<-[:MENTIONS|MAJOR_MENTIONS|ABOUT|IS_CLASSIFIED_BY|IS_PRIMARILY_CLASSIFIED_BY|HAS_AUTHOR|HAS_BRAND]-(:Content)
 		USING SCAN x:%[1]s
-		RETURN DISTINCT x.prefUUID AS Uuid, x.prefLabel AS PrefLabel, labels(x) AS Labels
+		RETURN DISTINCT x.prefUUID AS Uuid, x.prefLabel AS PrefLabel, labels(x) AS Labels,
+			x.aliases as Aliases, x.formerNames as FormerNames,	x.properName as ProperName, x.shortName as ShortName
 		`, conceptType)
 
 	if conceptType == "Organisation" {
@@ -62,6 +70,7 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 		WITH x, collect(DISTINCT CASE concept.authority WHEN 'FACTSET' THEN concept.authorityValue END) AS factsetIds,
 			collect(DISTINCT fi.figiCode) as figiCodes, collect(DISTINCT {id: naicsCanonical.industryIdentifier, rank: hasICRel.rank}) as naicsIndustryClassifications 
 		RETURN x.prefUUID AS Uuid, labels(x) AS Labels, x.prefLabel AS PrefLabel, x.leiCode AS leiCode,
+			x.aliases as Aliases, x.formerNames as FormerNames,	x.properName as ProperName, x.shortName as ShortName,
 			factsetIds,
 			figiCodes,
 			naicsIndustryClassifications
@@ -71,7 +80,8 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 		stmt = `
 		MATCH (:Content)-[:MENTIONS|MAJOR_MENTIONS|ABOUT|IS_CLASSIFIED_BY|IS_PRIMARILY_CLASSIFIED_BY|HAS_AUTHOR]->(:Concept)-[:EQUIVALENT_TO]->(x:Person)
 		USING SCAN x:Person
-		RETURN DISTINCT x.prefUUID as Uuid, x.prefLabel as PrefLabel, labels(x) as Labels
+		RETURN DISTINCT x.prefUUID as Uuid, x.prefLabel as PrefLabel, labels(x) as Labels,
+			x.aliases as Aliases, x.formerNames as FormerNames,	x.properName as ProperName, x.shortName as ShortName
 		`
 	}
 
@@ -96,10 +106,33 @@ func (s *NeoService) Read(conceptType string, conceptCh chan Concept) (int, bool
 			c.APIURL = mapper.APIURL(c.UUID, c.Labels, "")
 			c.ID = mapper.IDURL(c.UUID)
 			c.NAICSIndustryClassifications = cleanNAICS(c.NAICSIndustryClassifications)
+			c.AlternativeLabels = ConsolidateAlternativeLabels(c.Aliases, c.FormerNames, c.ProperName, c.ShortName, c.TradeNames)
 			conceptCh <- c
 		}
 	}()
 	return len(results), true, nil
+}
+
+func ConsolidateAlternativeLabels(aliases []string, formerNames []string, properName, shortName string, tradeNames []string) []string {
+	var res []string
+
+	if len(aliases) > 0 {
+		res = append(res, aliases...)
+	}
+	if len(formerNames) > 0 {
+		res = append(res, formerNames...)
+	}
+	if len(properName) > 0 {
+		res = append(res, properName)
+	}
+	if len(shortName) > 0 {
+		res = append(res, shortName)
+	}
+	if len(tradeNames) > 0 {
+		res = append(res, tradeNames...)
+	}
+
+	return res
 }
 
 func (s *NeoService) CheckConnectivity() (string, error) {
