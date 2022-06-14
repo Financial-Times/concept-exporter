@@ -53,7 +53,7 @@ func getHeader(conceptType string) []string {
 	if conceptType == "Organisation" {
 		return []string{"id", "prefLabel", "apiUrl", "alternativeLabels", "leiCode", "factsetId", "FIGI", "NAICS"}
 	}
-	return []string{"id", "prefLabel", "apiUrl"}
+	return []string{"id", "prefLabel", "apiUrl", "alternativeLabels"}
 }
 
 func conceptToCSVRecord(c db.Concept, conceptType string) []string {
