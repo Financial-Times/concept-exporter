@@ -13,9 +13,9 @@ func TestGetHeader(t *testing.T) {
 	for _, conceptType := range supportedConceptTypes {
 		header := getHeader(conceptType)
 		if conceptType == "Organisation" {
-			assert.Equal(t, []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI", "NAICS"}, header)
+			assert.Equal(t, []string{"id", "prefLabel", "apiUrl", "alternativeLabels", "leiCode", "factsetId", "FIGI", "NAICS"}, header)
 		} else {
-			assert.Equal(t, []string{"id", "prefLabel", "apiUrl"}, header)
+			assert.Equal(t, []string{"id", "prefLabel", "apiUrl", "alternativeLabels"}, header)
 		}
 	}
 }
