@@ -51,9 +51,9 @@ func (e *CsvExporter) GetFileName(conceptType string) string {
 
 func getHeader(conceptType string) []string {
 	if conceptType == "Organisation" {
-		return []string{"id", "prefLabel", "apiUrl", "leiCode", "factsetId", "FIGI", "NAICS"}
+		return []string{"id", "prefLabel", "apiUrl", "alternativeLabels", "leiCode", "factsetId", "FIGI", "NAICS"}
 	}
-	return []string{"id", "prefLabel", "apiUrl"}
+	return []string{"id", "prefLabel", "apiUrl", "alternativeLabels"}
 }
 
 func conceptToCSVRecord(c db.Concept, conceptType string) []string {
@@ -61,6 +61,7 @@ func conceptToCSVRecord(c db.Concept, conceptType string) []string {
 	rec = append(rec, c.ID)
 	rec = append(rec, c.PrefLabel)
 	rec = append(rec, c.APIURL)
+	rec = append(rec, strings.Join(c.AlternativeLabels, ";"))
 	if conceptType == "Organisation" {
 		rec = append(rec, c.LeiCode)
 		rec = append(rec, strings.Join(c.FactsetIDs, ";"))
